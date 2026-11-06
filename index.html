@@ -169,7 +169,7 @@ legend,label{font-size:14px;color:var(--mute)}
     <button class="btn2" id="setbudget">Ustaw miesięczny budżet</button>
   </section>
 
-  <section class="card"><h2>Podróże</h2><div id="trips"></div></section>
+  <section class="card" id="tripsec"><h2>Podróże</h2><div id="trips"></div></section>
   <section class="card" id="catsec"><h2>Na co poszło</h2><ul id="cats"></ul></section>
   <section class="card"><h2>Ostatnie 6 miesięcy</h2><div id="chart"></div></section>
   <section id="list"></section>
@@ -254,11 +254,10 @@ const CATS=[
   {id:'inne',n:'Inne',e:'📦',c:'#7b8790'}];
 const CUR=['PLN','NOK','EUR','USD'];
 // Podróże: każda to osobny plik w repozytorium. Kolejną dopisz tutaj.
-const TRIPS=[
-  {n:'Karaiby',f:'karaiby.html',e:'🏝️',c:'#1fa3b5',start:'2026-11-15',end:'2026-11-24',route:'Waszyngton, Aruba, Curaçao, Bogota'}];
+const TRIPS=[]; // np. {n:'Karaiby',f:'karaiby.html',e:'🏝️',c:'#1fa3b5',start:'2026-11-15',end:'2026-11-24',route:'…'}
 const FALLBACK={PLN:1,EUR:4.25,USD:3.65,NOK:0.36}; // używane tylko, gdy nie ma internetu i żadnego zapisanego kursu
 const LS='wydatki-v1';
-const APP_VER='Wersja 3: podróże'; // zmieniaj przy każdej aktualizacji, żeby widzieć ją w ⚙︎
+const APP_VER='Wersja 4'; // zmieniaj przy każdej aktualizacji, żeby widzieć ją w ⚙︎
 
 /* ---------- 2. Dane zapisane w telefonie ---------- */
 let S={exp:[],base:'PLN',budget:0,rates:{},lastCur:'PLN'};
@@ -428,7 +427,7 @@ function render(){
   const b=S.budget;$('#budget').hidden=!(b>0);$('#setbudget').hidden=b>0;
   if(b>0){const p=total/b;$('#bfill').style.width=Math.min(100,p*100)+'%';$('#budget').classList.toggle('over',p>1);
     $('#btext').textContent=p>1?`Budżet ${money(b,S.base)} przekroczony o ${money(total-b,S.base)}`:`Zostało ${money(b-total,S.base)} z ${money(b,S.base)}`}
-  $('#trips').innerHTML=tripsHTML();
+  $('#tripsec').hidden=!TRIPS.length;$('#trips').innerHTML=tripsHTML();
   // kategorie
   const by={};list.forEach(e=>by[e.cat]=(by[e.cat]||0)+inBase(e.pln));
   const rows=Object.entries(by).sort((a,b)=>b[1]-a[1]);

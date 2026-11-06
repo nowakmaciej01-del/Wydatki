@@ -1,8 +1,8 @@
 // „Service worker” – mały pomocnik, który zapisuje aplikację w telefonie,
 // dzięki czemu otwiera się ona także bez internetu.
 // Po każdej większej zmianie aplikacji podnieś numer wersji poniżej (v1 → v2).
-const CACHE = 'wydatki-v3';
-const SHELL = ['./', 'index.html', 'karaiby.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
+const CACHE = 'wydatki-v4';
+const SHELL = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
