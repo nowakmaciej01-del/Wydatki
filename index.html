@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wydatki</title>
+<!-- Te linijki sprawiają, że telefon traktuje stronę jak aplikację (ikonka, pełny ekran) -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Wydatki">
+<meta name="theme-color" content="#e9eeec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e1617" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap" rel="stylesheet">
+
+<!-- ================= WYGLĄD (CSS) ================= -->
+<style>
+:root{
+  --bg:#e9eeec;--paper:#fff;--ink:#17292b;--mute:#5a6c6f;--line:#d3dcda;--soft:#dfe7e5;
+  --accent:#0e6b62;--accent-ink:#fff;--warn:#c63f28;
+  --disp:"Bricolage Grotesque",ui-rounded,"Segoe UI",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0e1617;--paper:#182325;--ink:#e6eeec;--mute:#93a6a4;--line:#2a393b;--soft:#22312f;
+  --accent:#4cc3b2;--accent-ink:#062320;--warn:#ff7a62;color-scheme:dark}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 var(--body);-webkit-tap-highlight-color:transparent}
+main{max-width:560px;margin:0 auto;padding:6px 16px 120px}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+.top{display:flex;align-items:center;gap:8px;padding:12px 0 14px}
+.top h1{flex:1;margin:0;text-align:center;font:700 21px/1.1 var(--disp)}
+.ib{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--paper);font-size:18px;display:grid;place-items:center;padding:0}
+.ib:disabled{opacity:.35;cursor:default}
+
+/* Główna karta wygląda jak paragon – z ząbkowanym dołem */
+.receipt{background:var(--paper);padding:20px 20px 34px;border-radius:18px 18px 0 0;
+  -webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/16px 100%;
+          mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/16px 100%}
+.lbl{color:var(--mute);font-size:15px;margin:0}
+.total{font:700 clamp(40px,12vw,54px)/1.05 var(--disp);letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin:6px 0 2px}
+.cut{border:0;border-top:2px dashed var(--line);margin:16px 0 14px}
+.bar{height:10px;border-radius:5px;background:var(--soft);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:5px;transition:width .4s}
+#budget p{margin:8px 0 0;font-size:15px}
+#budget.over .bar i{background:var(--warn)}
+#budget.over p{color:var(--warn);font-weight:700}
+
+.card{background:var(--paper);border-radius:18px;padding:16px;margin-top:14px}
+.card h2{font:600 17px/1.2 var(--disp);margin:0 0 10px}
+#cats{list-style:none;margin:0;padding:0}
+#cats li{display:grid;grid-template-columns:1fr auto;gap:5px 10px;padding:7px 0}
+#cats .cv{font-variant-numeric:tabular-nums;font-weight:700}
+#cats .cv small{color:var(--mute);font-weight:400;margin-left:6px}
+#cats .cbar{grid-column:1/-1;height:6px;border-radius:3px;background:var(--soft);overflow:hidden}
+#cats .cbar i{display:block;height:100%;border-radius:3px}
+#chart svg{width:100%;height:auto;display:block}
+#chart rect{cursor:pointer}
+#chart .old{fill:var(--soft)}#chart .cur{fill:var(--accent)}
+#chart .ml{fill:var(--mute);font:12px var(--body)}
+#chart .vl{fill:var(--ink);font:700 11px var(--body)}
+#chart .bl{stroke:var(--warn);stroke-width:1.5;stroke-dasharray:5 4}
+
+#list h3{display:flex;justify-content:space-between;font:700 14px var(--body);color:var(--mute);margin:20px 4px 6px}
+#list ul{list-style:none;margin:0;padding:0;background:var(--paper);border-radius:16px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left}
+#list li:last-child .row{border-bottom:0}
+.ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:19px;flex:none;background:color-mix(in srgb,var(--c) 20%,transparent)}
+.rt{flex:1;min-width:0}
+.rt b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rt small,.ra small{display:block;color:var(--mute);font-size:13px}
+.ra{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.empty{text-align:center;color:var(--mute);padding:34px 20px}
+
+.fab{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));
+  background:var(--accent);color:var(--accent-ink);border:0;border-radius:30px;padding:15px 28px;
+  font:700 17px var(--disp);box-shadow:0 8px 24px rgba(14,107,98,.35);z-index:5}
+
+/* Okienka wysuwane od dołu */
+dialog{color:var(--ink)}
+.sheet{width:100%;max-width:560px;margin:auto auto 0;border:0;border-radius:22px 22px 0 0;background:var(--paper);
+  padding:18px 18px calc(20px + env(safe-area-inset-bottom,0px));max-height:94vh;overflow:auto}
+.sheet[open]{animation:up .25s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:.6}}
+@media (prefers-reduced-motion:reduce){.sheet[open]{animation:none}.bar i{transition:none}}
+dialog::backdrop{background:rgba(5,15,15,.45)}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.sh h2{font:700 20px var(--disp);margin:0}
+.x{border:0;background:var(--soft);width:36px;height:36px;border-radius:50%}
+.amt input{width:100%;border:0;border-bottom:2px solid var(--line);background:none;color:var(--ink);
+  font:700 42px/1.2 var(--disp);letter-spacing:-.02em;padding:6px 0;font-variant-numeric:tabular-nums;border-radius:0}
+.amt input:focus{outline:0;border-color:var(--accent)}
+.seg{display:flex;gap:6px;margin:12px 0 4px}
+.seg button{flex:1;padding:9px 0;border-radius:10px;border:1px solid var(--line);background:none;font-weight:700;font-size:15px}
+.seg button[aria-checked="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+fieldset{border:0;padding:0;margin:12px 0 0}
+legend,label{font-size:14px;color:var(--mute)}
+#catpick{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+#catpick button{border:1px solid var(--line);background:none;border-radius:12px;padding:8px 4px;font-size:13px;line-height:1.2}
+#catpick button span{display:block;font-size:22px;margin-bottom:2px}
+#catpick button[aria-pressed="true"]{border:2px solid var(--c);background:color-mix(in srgb,var(--c) 16%,transparent);padding:7px 3px;font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1.3fr;gap:10px;margin-top:12px}
+.field{display:block;width:100%;margin-top:4px;padding:11px 12px;min-height:46px;border:1px solid var(--line);border-radius:10px;
+  background:var(--bg);color:var(--ink);font:16px var(--body);-webkit-appearance:none;appearance:none}
+.rcpt{margin-top:14px}
+#thumbwrap{display:flex;gap:12px;align-items:center}
+#thumb{width:72px;height:96px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:zoom-in}
+#thumbwrap div{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:12px;padding:14px 18px;font:700 16px var(--body)}
+.btn:disabled{opacity:.6}
+.btn2{background:none;border:1px solid var(--line);border-radius:12px;padding:11px 14px;font-weight:700;font-size:15px}
+.btn2:disabled{opacity:.6}
+.lnk{background:none;border:0;padding:6px 0;color:var(--mute);text-decoration:underline;font-size:15px}
+.danger{color:var(--warn)}
+.hint{font-size:14px;color:var(--mute);margin:10px 0 0}
+.acts{display:flex;gap:12px;align-items:center;margin-top:18px}
+.acts .btn{flex:1}
+.set p{font-size:15px;color:var(--mute)}
+#trips a{display:flex;gap:12px;align-items:center;text-decoration:none;color:inherit;padding:6px 0}
+#trips a+a{border-top:1px solid var(--line);padding-top:12px;margin-top:6px}
+#trips .rt small{font-size:14px}
+#trips .go{color:var(--mute);font-size:22px}
+#itemsbox{margin-top:16px;border-top:2px dashed var(--line);padding-top:12px}
+.ih{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--mute)}
+.ih strong{color:var(--ink);font:600 16px var(--disp)}
+#items{list-style:none;margin:8px 0 4px;padding:0}
+#items li{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+#items input{min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:16px var(--body)}
+#items .in{flex:1}
+#items .ip{width:92px;flex:none;text-align:right;font-variant-numeric:tabular-nums}
+#items button{border:0;background:none;color:var(--mute);width:32px;height:38px;font-size:15px;flex:none;padding:0}
+#imis{font-size:14px;color:var(--warn);margin:4px 0}
+#imis .lnk{color:var(--warn);font-size:14px;padding:2px 0}
+.ver{font-size:13px!important}
+.set .group{margin-top:16px}
+.set .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+#viewer{border:0;padding:0;background:#000;max-width:100vw;max-height:100vh;width:100vw;height:100vh;margin:0}
+#viewer img{width:100%;height:100%;object-fit:contain}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));
+  background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;max-width:90%;z-index:50;font-size:15px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+
+<!-- ================= EKRAN (HTML) ================= -->
+<main>
+  <header class="top">
+    <button class="ib" id="prev" aria-label="Poprzedni miesiąc">‹</button>
+    <h1 id="month"></h1>
+    <button class="ib" id="next" aria-label="Następny miesiąc">›</button>
+    <button class="ib" id="setbtn" aria-label="Ustawienia">⚙︎</button>
+  </header>
+
+  <section class="receipt">
+    <p class="lbl">Suma wydatków</p>
+    <div class="total" id="total"></div>
+    <p class="lbl" id="count"></p>
+    <hr class="cut">
+    <div id="budget"><div class="bar"><i id="bfill"></i></div><p id="btext"></p></div>
+    <button class="btn2" id="setbudget">Ustaw miesięczny budżet</button>
+  </section>
+
+  <section class="card"><h2>Podróże</h2><div id="trips"></div></section>
+  <section class="card" id="catsec"><h2>Na co poszło</h2><ul id="cats"></ul></section>
+  <section class="card"><h2>Ostatnie 6 miesięcy</h2><div id="chart"></div></section>
+  <section id="list"></section>
+</main>
+
+<button class="fab" id="add">+ Dodaj wydatek</button>
+
+<!-- Okienko dodawania i edycji wydatku -->
+<dialog id="sheet" class="sheet">
+  <form id="f" novalidate>
+    <div class="sh"><h2 id="ftitle">Nowy wydatek</h2><button type="button" class="x" data-close aria-label="Zamknij">✕</button></div>
+    <label class="amt"><span class="sr">Kwota</span><input id="amt" inputmode="decimal" autocomplete="off" placeholder="0,00"></label>
+    <div class="seg" id="curs" role="radiogroup" aria-label="Waluta"></div>
+    <fieldset><legend>Kategoria</legend><div id="catpick"></div></fieldset>
+    <div class="two">
+      <label>Data<input type="date" id="date" class="field"></label>
+      <label>Opis<input id="note" class="field" placeholder="np. Biedronka" maxlength="80"></label>
+    </div>
+    <div class="rcpt">
+      <div id="thumbwrap" hidden>
+        <img id="thumb" alt="Zdjęcie paragonu, dotknij, żeby powiększyć">
+        <div><button type="button" class="btn2" id="ocr">Odczytaj paragon</button><button type="button" class="lnk" id="rmphoto">Usuń zdjęcie</button></div>
+      </div>
+      <button type="button" class="btn2" id="addphoto">📷 Dodaj zdjęcie paragonu</button>
+      <input type="file" id="photo" accept="image/*" hidden>
+      <p class="hint" id="ocrmsg" hidden aria-live="polite"></p>
+    </div>
+    <div id="itemsbox">
+      <div class="ih"><strong>Artykuły</strong><span id="isum"></span></div>
+      <ul id="items"></ul>
+      <p id="imis" hidden></p>
+      <button type="button" class="lnk" id="additem">+ Dodaj artykuł</button>
+    </div>
+    <div class="acts">
+      <button type="button" class="lnk danger" id="del" hidden>Usuń wydatek</button>
+      <button class="btn" id="savebtn">Zapisz wydatek</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Okienko ustawień -->
+<dialog id="settings" class="sheet set">
+  <div class="sh"><h2>Ustawienia</h2><button type="button" class="x" data-close aria-label="Zamknij">✕</button></div>
+  <div class="group">
+    <label>Waluta, w której liczę sumy
+      <select id="base" class="field"><option>PLN</option><option>NOK</option><option>EUR</option><option>USD</option></select>
+    </label>
+  </div>
+  <div class="group">
+    <label>Miesięczny budżet (<span id="bcur"></span>)
+      <input id="budgetIn" class="field" inputmode="decimal" placeholder="np. 4000">
+    </label>
+  </div>
+  <div class="group">
+    <p id="rinfo"></p>
+  </div>
+  <div class="group">
+    <p>Dane są zapisane tylko w tym telefonie. Co jakiś czas zrób kopię i zachowaj ją np. na Dysku Google. Kopia nie zawiera zdjęć paragonów.</p>
+    <div class="btnrow">
+      <button class="btn2" id="export">Zrób kopię</button>
+      <button class="btn2" id="import">Wczytaj kopię</button>
+      <input type="file" id="impfile" accept="application/json,.json" hidden>
+    </div>
+  </div>
+  <p class="ver" id="ver"></p>
+</dialog>
+
+<dialog id="viewer"><img id="vimg" alt="Paragon"></dialog>
+
+<!-- ================= DZIAŁANIE (JavaScript) ================= -->
+<script>
+/* ---------- 1. Ustawienia stałe ---------- */
+const CATS=[
+  {id:'spoz',n:'Spożywcze',e:'🛒',c:'#2f9e6b'},
+  {id:'rest',n:'Restauracje',e:'🍽️',c:'#e07a2f'},
+  {id:'trans',n:'Transport',e:'🚗',c:'#3a7bd5'},
+  {id:'dom',n:'Dom',e:'🏠',c:'#8a5cc7'},
+  {id:'rach',n:'Rachunki',e:'🧾',c:'#c7486e'},
+  {id:'zdr',n:'Zdrowie',e:'💊',c:'#1fa3b5'},
+  {id:'rozr',n:'Rozrywka',e:'🎟️',c:'#c99a12'},
+  {id:'zak',n:'Zakupy',e:'👕',c:'#6d8a3a'},
+  {id:'inne',n:'Inne',e:'📦',c:'#7b8790'}];
+const CUR=['PLN','NOK','EUR','USD'];
+// Podróże: każda to osobny plik w repozytorium. Kolejną dopisz tutaj.
+const TRIPS=[
+  {n:'Karaiby',f:'karaiby.html',e:'🏝️',c:'#1fa3b5',start:'2026-11-15',end:'2026-11-24',route:'Waszyngton, Aruba, Curaçao, Bogota'}];
+const FALLBACK={PLN:1,EUR:4.25,USD:3.65,NOK:0.36}; // używane tylko, gdy nie ma internetu i żadnego zapisanego kursu
+const LS='wydatki-v1';
+const APP_VER='Wersja 3: podróże'; // zmieniaj przy każdej aktualizacji, żeby widzieć ją w ⚙︎
+
+/* ---------- 2. Dane zapisane w telefonie ---------- */
+let S={exp:[],base:'PLN',budget:0,rates:{},lastCur:'PLN'};
+try{const r=JSON.parse(localStorage.getItem(LS)||'null');if(r)S={...S,...r}}catch(e){}
+const save=()=>{try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){toast('Nie udało się zapisać danych w telefonie.')}};
+
+/* ---------- 3. Drobne pomocnicze funkcje ---------- */
+const $=s=>document.querySelector(s);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const pad=n=>String(n).padStart(2,'0');
+const dkey=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const today=()=>dkey(new Date());
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nf={};
+const money=(n,c)=>(nf[c]||(nf[c]=new Intl.NumberFormat('pl-PL',{style:'currency',currency:c}))).format(n);
+const short=new Intl.NumberFormat('pl-PL',{notation:'compact',maximumFractionDigits:1});
+const parseAmt=s=>{const n=parseFloat(String(s).replace(/\s/g,'').replace(',','.'));return isFinite(n)?n:NaN};
+const cat=id=>CATS.find(k=>k.id===id)||CATS[CATS.length-1];
+const pl=(n,one,few,many)=>{const a=n%10,b=n%100;return n===1?one:(a>=2&&a<=4&&!(b>=12&&b<=14))?few:many};
+const plural=n=>pl(n,'wydatek','wydatki','wydatków');
+const fmtP=n=>(Math.round(n*100)/100).toFixed(2).replace('.',',');
+let ym=today().slice(0,7); // oglądany miesiąc, np. „2026-11”
+let tt;
+function toast(m,ms=3200){let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');document.body.append(t)}
+  t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,ms)}
+
+/* ---------- 4. Kursy walut (Narodowy Bank Polski) ---------- */
+// Każdy wydatek zapisujemy też w złotówkach, po kursie NBP z dnia zakupu.
+const rateOf=c=>c==='PLN'?1:((S.rates[c]&&S.rates[c].mid)||FALLBACK[c]);
+const inBase=pln=>pln/rateOf(S.base);
+async function fetchRate(cur,date){
+  if(cur==='PLN')return 1;
+  const end=date>today()?today():date, sd=new Date(end+'T12:00');sd.setDate(sd.getDate()-10);
+  const r=await fetch(`https://api.nbp.pl/api/exchangerates/rates/a/${cur.toLowerCase()}/${dkey(sd)}/${end}/?format=json`);
+  if(!r.ok)throw new Error('nbp');
+  const j=await r.json();return j.rates[j.rates.length-1].mid;
+}
+async function refreshRates(){
+  try{const r=await fetch('https://api.nbp.pl/api/exchangerates/tables/a/?format=json');if(!r.ok)return;
+    const t=(await r.json())[0];
+    t.rates.forEach(x=>{if(CUR.includes(x.code))S.rates[x.code]={mid:x.mid,date:t.effectiveDate}});save()}catch(e){}
+}
+async function fixEstimates(){ // wydatki zapisane bez internetu dostają prawdziwy kurs, gdy internet wróci
+  let ch=false;
+  for(const e of S.exp.filter(x=>x.est)){try{const m=await fetchRate(e.cur,e.date);e.rate=m;e.pln=e.amount*m;delete e.est;ch=true}catch(err){break}}
+  if(ch){save();render()}
+}
+
+/* ---------- 5. Zdjęcia paragonów (osobny „schowek” w telefonie) ---------- */
+let dbP=null;
+const idb=()=>dbP||(dbP=new Promise((res,rej)=>{const r=indexedDB.open('wydatki',1);
+  r.onupgradeneeded=()=>r.result.createObjectStore('paragony');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}));
+const tx=(mode,fn)=>idb().then(db=>new Promise((res,rej)=>{const t=db.transaction('paragony',mode),q=fn(t.objectStore('paragony'));
+  t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error)}));
+const putPhoto=(id,b)=>tx('readwrite',s=>s.put(b,id));
+const getPhoto=id=>tx('readonly',s=>s.get(id)).catch(()=>null);
+const delPhoto=id=>tx('readwrite',s=>s.delete(id)).catch(()=>{});
+function compress(file){ // zmniejsza zdjęcie, żeby nie zajmowało dużo miejsca
+  return new Promise((res,rej)=>{const u=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{const k=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement('canvas');
+      c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(u);c.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',.82)};
+    img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'))};img.src=u});
+}
+
+/* ---------- 6. Odczytywanie paragonu (rozpoznawanie tekstu ze zdjęcia) ---------- */
+let tessP=null;
+const loadTess=()=>tessP||(tessP=new Promise((res,rej)=>{const s=document.createElement('script');
+  s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+  s.onload=()=>res(window.Tesseract);s.onerror=()=>{tessP=null;rej(new Error('load'))};document.head.append(s)}));
+function parseReceipt(t){
+  const lines=t.split('\n').map(s=>s.trim()).filter(Boolean);
+  const numRe=/(\d{1,3}(?:[ .]\d{3})+|\d+)\s?[.,]\s?(\d{2})(?!\d)/g;
+  const nums=s=>{const o=[];let m;numRe.lastIndex=0;while((m=numRe.exec(s)))o.push(parseFloat(m[1].replace(/[ .]/g,'')+'.'+m[2]));return o};
+  const KW=/(suma|razem|do zap[łl]aty|nale[żz]no|total|[åa] betale|amount|\bsum\b)/i, NO=/(ptu|vat|mva|rabat|reszta|got[óo]wka|change|cash|podsuma|subtotal)/i;
+  let amount=null;
+  for(let i=lines.length-1;i>=0;i--){const l=lines[i];if(KW.test(l)&&!NO.test(l)){let n=nums(l);if(!n.length&&lines[i+1])n=nums(lines[i+1]);if(n.length){amount=n[n.length-1];break}}}
+  if(amount==null){const all=lines.filter(l=>!NO.test(l)).flatMap(nums).filter(n=>n<100000);if(all.length)amount=Math.max(...all)}
+  let date=null,m;
+  if((m=t.match(/(20\d{2})[-.\/](\d{2})[-.\/](\d{2})/)))date=`${m[1]}-${m[2]}-${m[3]}`;
+  else if((m=t.match(/(\d{2})[-.\/](\d{2})[-.\/](20\d{2})/)))date=`${m[3]}-${m[2]}-${m[1]}`;
+  if(date&&(isNaN(new Date(date+'T12:00'))||date>today()))date=null;
+  const cur=/\bPLN\b|z[łl]\b/i.test(t)?'PLN':/€|\bEUR\b/i.test(t)?'EUR':/\bNOK\b|\bkr\b/i.test(t)?'NOK':/\$|\bUSD\b/.test(t)?'USD':null;
+  const shop=lines.slice(0,5).find(l=>/[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż]{3}/.test(l)&&!/\d[.,]\d{2}(?!\d)|\d{2}[-.\/]\d{2}[-.\/]\d{2}/.test(l)&&!/paragon|fiskal|nip|kvittering/i.test(l)&&l.length<40)||'';
+  return{amount,date,cur,shop,items:parseItems(lines,nums)};
+}
+// Artykuły: wiersze między nagłówkiem paragonu a sumą, które kończą się ceną
+function parseItems(lines,nums){
+  let st=lines.findIndex(l=>/paragon\s*fiskalny|kvittering|receipt/i.test(l));st=st<0?0:st+1;
+  let en=lines.findIndex((l,i)=>i>=st&&/sprzeda[żz]|\bsuma\b|razem|do zap|total|[åa] betale|subtotal/i.test(l));if(en<0)en=lines.length;
+  const STOP=/(ptu|vat|mva|got[óo]wka|karta|reszta|nip|kasa|kasjer|nr\s?(sys|kas|par)|bank|terminal|visa|mastercard|org\.?\s?nr|tel\.|ul\.)/i;
+  const out=[];let pend='';
+  for(const l of lines.slice(st,en)){
+    const n=nums(l),letters=/[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźżÆØÅæøå]{2}/.test(l);
+    if(/^(rabat|opust|upust|promocja|obni[żz]ka|rabatt)/i.test(l)){if(n.length&&out.length){const it=out[out.length-1];it.p=Math.max(0,it.p-n[n.length-1])}continue}
+    if(STOP.test(l)){pend='';continue}
+    if(!n.length){if(letters)pend=l;continue}
+    const p=n[n.length-1];if(!(p>0&&p<100000))continue;
+    let name=l.replace(/\s*\d+(?:[.,]\d+)?\s*(?:szt\.?|kg|stk)?\s*[x×*]\s*\d.*$/i,'');
+    if(name===l)name=l.replace(/[-\s]*\d+\s?[.,]\s?\d{2}\s*[A-G]?\W*$/,'');
+    name=name.replace(/[|_~"]+/g,' ').replace(/\s+/g,' ').trim();
+    if(!/[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźżÆØÅæøå]{2}/.test(name))name=pend;
+    pend='';
+    if(name)out.push({n:name.slice(0,60),p});
+    if(out.length>=80)break;
+  }
+  return out;
+}
+async function ocr(){
+  const b=ed.blob||ed.view;if(!b)return;
+  const m=$('#ocrmsg'),btn=$('#ocr');m.hidden=false;btn.disabled=true;
+  try{
+    m.textContent='Wczytuję czytnik paragonów. Za pierwszym razem trwa to dłużej.';
+    const T=await loadTess();
+    const w=await T.createWorker(['pol','eng'],1,{logger:x=>{if(x.status==='recognizing text')m.textContent='Czytam paragon: '+Math.round(x.progress*100)+'%'}});
+    const {data}=await w.recognize(b);await w.terminate();
+    const r=parseReceipt(data.text||'');
+    if(r.cur&&r.cur!==ed.cur){ed.cur=r.cur;drawPick()}
+    if(r.date)$('#date').value=r.date;
+    if(r.shop&&!$('#note').value.trim())$('#note').value=r.shop.slice(0,80);
+    const its=r.items||[];
+    if(its.length&&!ed.items.length){ed.items=its.map(it=>({n:it.n,p:fmtP(it.p)}))}
+    const amt=r.amount||(its.length?its.reduce((a,it)=>a+it.p,0):0);
+    if(amt){$('#amt').value=fmtP(amt);
+      m.textContent=`Odczytano ${money(amt,ed.cur)}${r.date?' z dnia '+r.date:''}${its.length?' i '+its.length+' '+pl(its.length,'artykuł','artykuły','artykułów'):''}. Sprawdź, czy wszystko się zgadza, i popraw, jeśli trzeba.`}
+    else m.textContent='Nie znalazłem kwoty na zdjęciu. Wpisz ją ręcznie. Najlepiej działa zdjęcie z bliska, przy dobrym świetle, na płasko.';
+    drawItems();
+  }catch(e){m.textContent='Nie udało się odczytać paragonu. Sprawdź połączenie z internetem albo wpisz kwotę ręcznie.'}
+  btn.disabled=false;
+}
+
+/* ---------- 7. Rysowanie ekranu głównego ---------- */
+function tripsHTML(){const t=today();
+  return TRIPS.map(x=>{const d=Math.round((new Date(x.start+'T12:00')-new Date(t+'T12:00'))/864e5);
+    const when=t>x.end?'zakończona':t>=x.start?'trwa teraz':d===1?'jutro':'za '+d+' dni';
+    const r=new Date(x.start+'T12:00').toLocaleDateString('pl-PL',{day:'numeric',month:'short'})+' – '+new Date(x.end+'T12:00').toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
+    return `<a href="${x.f}"><span class="ic" style="--c:${x.c}">${x.e}</span><span class="rt"><b>${x.n}</b><small>${r}, ${when}</small><small>${x.route}</small></span><span class="go">›</span></a>`}).join('')}
+const monthTotal=k=>S.exp.filter(e=>e.date.startsWith(k)).reduce((a,e)=>a+inBase(e.pln),0);
+function dayLabel(d){const t=today(),y=new Date();y.setDate(y.getDate()-1);
+  if(d===t)return 'Dziś';if(d===dkey(y))return 'Wczoraj';
+  return new Date(d+'T12:00').toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'})}
+function row(e){const k=cat(e.cat);
+  return `<li><button class="row" data-id="${e.id}"><span class="ic" style="--c:${k.c}">${k.e}</span>
+    <span class="rt"><b>${esc(e.note||k.n)}</b><small>${e.note?k.n:''}${e.items&&e.items.length?(e.note?', ':'')+e.items.length+' '+pl(e.items.length,'artykuł','artykuły','artykułów'):''}${e.photo?' 📎':''}</small></span>
+    <span class="ra"><b>${money(inBase(e.pln),S.base)}</b>${e.cur!==S.base?`<small>${e.est?'≈ ':''}${money(e.amount,e.cur)}</small>`:''}</span></button></li>`}
+function chart(){
+  const [y,m]=ym.split('-').map(Number),ms=[];
+  for(let i=5;i>=0;i--){const d=new Date(y,m-1-i,1),k=d.getFullYear()+'-'+pad(d.getMonth()+1);
+    ms.push({k,l:d.toLocaleDateString('pl-PL',{month:'short'}).replace('.',''),v:monthTotal(k)})}
+  const W=320,H=160,top=20,bot=24,max=Math.max(S.budget||0,...ms.map(x=>x.v),1)*1.12,bw=W/6,ch=H-top-bot;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Wydatki w ostatnich 6 miesiącach">`;
+  ms.forEach((x,i)=>{const h=Math.max(ch*x.v/max,2),X=i*bw+bw*.18,Y=H-bot-h;
+    s+=`<rect data-ym="${x.k}" x="${X}" y="${Y}" width="${bw*.64}" height="${h}" rx="5" class="${x.k===ym?'cur':'old'}"><title>${x.l}: ${money(x.v,S.base)}</title></rect>`;
+    if(x.v>0)s+=`<text x="${X+bw*.32}" y="${Y-5}" text-anchor="middle" class="vl">${short.format(x.v)}</text>`;
+    s+=`<text x="${X+bw*.32}" y="${H-7}" text-anchor="middle" class="ml">${x.l}</text>`});
+  if(S.budget>0){const Y=H-bot-ch*S.budget/max;s+=`<line x1="0" x2="${W}" y1="${Y}" y2="${Y}" class="bl"/>`}
+  return s+'</svg>';
+}
+function render(){
+  const [y,m]=ym.split('-').map(Number),lab=new Date(y,m-1,1).toLocaleDateString('pl-PL',{month:'long',year:'numeric'});
+  $('#month').textContent=lab.charAt(0).toUpperCase()+lab.slice(1);
+  $('#next').disabled=ym>=today().slice(0,7);
+  const list=S.exp.filter(e=>e.date.startsWith(ym)),total=list.reduce((a,e)=>a+inBase(e.pln),0);
+  $('#total').textContent=money(total,S.base);
+  $('#count').textContent=list.length?list.length+' '+plural(list.length):'Brak wydatków w tym miesiącu';
+  // budżet
+  const b=S.budget;$('#budget').hidden=!(b>0);$('#setbudget').hidden=b>0;
+  if(b>0){const p=total/b;$('#bfill').style.width=Math.min(100,p*100)+'%';$('#budget').classList.toggle('over',p>1);
+    $('#btext').textContent=p>1?`Budżet ${money(b,S.base)} przekroczony o ${money(total-b,S.base)}`:`Zostało ${money(b-total,S.base)} z ${money(b,S.base)}`}
+  $('#trips').innerHTML=tripsHTML();
+  // kategorie
+  const by={};list.forEach(e=>by[e.cat]=(by[e.cat]||0)+inBase(e.pln));
+  const rows=Object.entries(by).sort((a,b)=>b[1]-a[1]);
+  $('#catsec').hidden=!rows.length;
+  $('#cats').innerHTML=rows.map(([c,v])=>{const k=cat(c),p=Math.round(v/total*100);
+    return `<li><span>${k.e} ${k.n}</span><span class="cv">${money(v,S.base)}<small>${p}%</small></span><span class="cbar"><i style="width:${v/total*100}%;background:${k.c}"></i></span></li>`}).join('');
+  // wykres
+  $('#chart').innerHTML=chart();
+  // lista wydatków dzień po dniu
+  const days={};list.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.t-a.t).forEach(e=>(days[e.date]=days[e.date]||[]).push(e));
+  $('#list').innerHTML=Object.entries(days).map(([d,es])=>`<h3><span>${dayLabel(d)}</span><span>${money(es.reduce((a,e)=>a+inBase(e.pln),0),S.base)}</span></h3><ul>${es.map(row).join('')}</ul>`).join('')
+    ||'<p class="empty">Dotknij „Dodaj wydatek”, żeby zapisać pierwszy wydatek w tym miesiącu.</p>';
+}
+
+/* ---------- 8. Dodawanie i edycja wydatku ---------- */
+let ed={},thumbUrl=null,delArmed=false;
+function drawPick(){
+  $('#curs').innerHTML=CUR.map(c=>`<button type="button" role="radio" aria-checked="${c===ed.cur}" data-cur="${c}">${c}</button>`).join('');
+  $('#catpick').innerHTML=CATS.map(k=>`<button type="button" aria-pressed="${k.id===ed.cat}" data-cat="${k.id}" style="--c:${k.c}"><span>${k.e}</span>${k.n}</button>`).join('');
+}
+function drawItems(){
+  $('#items').innerHTML=ed.items.map((it,i)=>`<li><input class="in" data-i="${i}" data-k="n" value="${esc(it.n)}" placeholder="Nazwa" aria-label="Nazwa artykułu"><input class="ip" data-i="${i}" data-k="p" value="${esc(it.p)}" inputmode="decimal" placeholder="0,00" aria-label="Cena"><button type="button" data-rm="${i}" aria-label="Usuń artykuł">✕</button></li>`).join('');
+  itemSum();
+}
+function itemSum(){ // suma artykułów i ostrzeżenie, gdy nie zgadza się z kwotą
+  const s=ed.items.reduce((a,it)=>a+(parseAmt(it.p)||0),0),amt=parseAmt($('#amt').value);
+  $('#isum').textContent=ed.items.length?'Razem '+money(s,ed.cur):'Opcjonalnie';
+  const mis=ed.items.length>0&&s>0&&amt>0&&Math.abs(s-amt)>0.009;
+  $('#imis').hidden=!mis;
+  if(mis)$('#imis').innerHTML=`Suma artykułów różni się od kwoty o ${money(Math.abs(s-amt),ed.cur)}. <button type="button" class="lnk" id="useisum">Wpisz sumę artykułów jako kwotę</button>`;
+}
+function setThumb(b){if(thumbUrl){URL.revokeObjectURL(thumbUrl);thumbUrl=null}ed.view=b||null;
+  $('#thumbwrap').hidden=!b;$('#addphoto').hidden=!!b;if(b){thumbUrl=URL.createObjectURL(b);$('#thumb').src=thumbUrl}}
+function openSheet(e){
+  ed={id:e?e.id:null,cur:e?e.cur:(S.lastCur||S.base),cat:e?e.cat:'spoz',blob:null,changed:false,had:!!(e&&e.photo),items:(e&&e.items||[]).map(it=>({n:it.n,p:fmtP(it.p)}))};
+  $('#ftitle').textContent=e?'Edytuj wydatek':'Nowy wydatek';
+  $('#amt').value=e?String(e.amount).replace('.',','):'';
+  $('#date').value=e?e.date:(ym===today().slice(0,7)?today():ym+'-01');
+  $('#note').value=e?e.note||'':'';
+  $('#del').hidden=!e;delArmed=false;$('#del').textContent='Usuń wydatek';
+  $('#ocrmsg').hidden=true;$('#ocr').disabled=false;
+  drawPick();drawItems();setThumb(null);
+  if(e&&e.photo)getPhoto(e.id).then(b=>{if(b&&ed.id===e.id&&!ed.changed)setThumb(b)});
+  $('#sheet').showModal();
+  if(!e)setTimeout(()=>$('#amt').focus(),60);
+}
+$('#add').onclick=()=>openSheet(null);
+$('#curs').onclick=e=>{const b=e.target.closest('[data-cur]');if(b){ed.cur=b.dataset.cur;drawPick();itemSum()}};
+$('#amt').oninput=()=>itemSum();
+$('#items').oninput=e=>{const t=e.target;if(t.dataset.i!==undefined){ed.items[+t.dataset.i][t.dataset.k]=t.value;if(t.dataset.k==='p')itemSum()}};
+$('#items').onclick=e=>{const b=e.target.closest('[data-rm]');if(b){ed.items.splice(+b.dataset.rm,1);drawItems()}};
+$('#additem').onclick=()=>{ed.items.push({n:'',p:''});drawItems();const ins=$('#items').querySelectorAll('.in');ins[ins.length-1].focus()};
+$('#imis').onclick=e=>{if(e.target.id==='useisum'){$('#amt').value=fmtP(ed.items.reduce((a,it)=>a+(parseAmt(it.p)||0),0));itemSum()}};
+$('#catpick').onclick=e=>{const b=e.target.closest('[data-cat]');if(b){ed.cat=b.dataset.cat;drawPick()}};
+$('#addphoto').onclick=()=>$('#photo').click();
+$('#photo').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{const b=await compress(f);ed.blob=b;ed.changed=true;setThumb(b);if(!$('#amt').value.trim())ocr()}
+  catch(err){toast('Nie udało się wczytać zdjęcia.')}};
+$('#rmphoto').onclick=()=>{ed.blob=null;ed.changed=true;ed.had=false;setThumb(null);$('#ocrmsg').hidden=true};
+$('#ocr').onclick=ocr;
+$('#thumb').onclick=()=>{if(thumbUrl){$('#vimg').src=thumbUrl;$('#viewer').showModal()}};
+$('#viewer').onclick=()=>$('#viewer').close();
+$('#f').onsubmit=async ev=>{ev.preventDefault();
+  const items=ed.items.map(it=>({n:it.n.trim(),p:parseAmt(it.p)})).filter(it=>it.n||it.p>0).map(it=>({n:it.n||'Artykuł',p:it.p>0?it.p:0}));
+  let amount=parseAmt($('#amt').value);
+  if(!(amount>0)&&items.length)amount=Math.round(items.reduce((a,it)=>a+it.p,0)*100)/100;
+  if(!(amount>0)){toast('Wpisz kwotę większą od zera.');$('#amt').focus();return}
+  const date=$('#date').value||today(),btn=$('#savebtn');btn.disabled=true;
+  const old=ed.id&&S.exp.find(x=>x.id===ed.id);
+  let rate=1,est=false;
+  if(ed.cur!=='PLN'){
+    if(old&&old.cur===ed.cur&&old.date===date&&!old.est)rate=old.rate;
+    else{try{rate=await fetchRate(ed.cur,date)}catch(e){rate=rateOf(ed.cur);est=true}}}
+  const id=ed.id||uid();let photo=ed.had;
+  if(ed.changed){try{if(ed.blob){await putPhoto(id,ed.blob);photo=true}else{await delPhoto(id);photo=false}}
+    catch(e){photo=false;toast('Nie udało się zapisać zdjęcia paragonu.')}}
+  const rec={id,amount,cur:ed.cur,cat:ed.cat,date,note:$('#note').value.trim(),rate,pln:amount*rate,photo,t:old?old.t:Date.now()};
+  if(est)rec.est=true;
+  if(items.length)rec.items=items;
+  if(old)S.exp[S.exp.indexOf(old)]=rec;else S.exp.push(rec);
+  S.lastCur=ed.cur;save();btn.disabled=false;$('#sheet').close();
+  ym=date.slice(0,7);render();toast(old?'Zapisano zmiany.':'Zapisano wydatek.');
+};
+$('#del').onclick=()=>{
+  if(!delArmed){delArmed=true;$('#del').textContent='Na pewno? Dotknij ponownie';
+    setTimeout(()=>{delArmed=false;$('#del').textContent='Usuń wydatek'},4000);return}
+  const id=ed.id;S.exp=S.exp.filter(x=>x.id!==id);save();delPhoto(id);$('#sheet').close();render();toast('Usunięto wydatek.')};
+$('#list').onclick=e=>{const b=e.target.closest('[data-id]');if(b){const x=S.exp.find(v=>v.id===b.dataset.id);if(x)openSheet(x)}};
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
+
+/* ---------- 9. Przełączanie miesięcy ---------- */
+function shift(n){const [y,m]=ym.split('-').map(Number),d=new Date(y,m-1+n,1);ym=d.getFullYear()+'-'+pad(d.getMonth()+1);render()}
+$('#prev').onclick=()=>shift(-1);
+$('#next').onclick=()=>shift(1);
+$('#chart').onclick=e=>{const r=e.target.closest('[data-ym]');if(r){ym=r.dataset.ym;render()}};
+
+/* ---------- 10. Ustawienia, kopia zapasowa ---------- */
+function openSettings(){
+  $('#base').value=S.base;$('#bcur').textContent=S.base;
+  $('#budgetIn').value=S.budget?String(Math.round(S.budget*100)/100).replace('.',','):'';
+  const r=['EUR','USD','NOK'].filter(c=>S.rates[c]).map(c=>`1 ${c} = ${S.rates[c].mid.toFixed(4).replace('.',',')} zł`);
+  $('#rinfo').textContent=r.length?`Kursy NBP z dnia ${S.rates.EUR?S.rates.EUR.date:''}: ${r.join(', ')}.`:'Kursy walut pobiorą się, gdy telefon będzie miał internet.';
+  $('#ver').textContent=APP_VER;
+  $('#settings').showModal();
+}
+$('#setbtn').onclick=openSettings;
+$('#setbudget').onclick=()=>{openSettings();setTimeout(()=>$('#budgetIn').focus(),60)};
+$('#base').onchange=e=>{const nb=e.target.value;if(S.budget)S.budget=Math.round(S.budget*rateOf(S.base)/rateOf(nb));
+  S.base=nb;$('#bcur').textContent=nb;$('#budgetIn').value=S.budget?String(S.budget):'';save();render()};
+$('#budgetIn').oninput=e=>{const n=parseAmt(e.target.value);S.budget=n>0?n:0;save();render()};
+$('#export').onclick=async()=>{
+  const name='wydatki-'+today()+'.json',
+    blob=new Blob([JSON.stringify({app:'wydatki',v:1,exp:S.exp,base:S.base,budget:S.budget})],{type:'application/json'});
+  try{const file=new File([blob],name,{type:'application/json'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Kopia wydatków'});return}}
+  catch(e){if(e&&e.name==='AbortError')return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+};
+$('#import').onclick=()=>$('#impfile').click();
+$('#impfile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{const j=JSON.parse(await f.text());if(!j||!Array.isArray(j.exp))throw 0;let n=0;
+    j.exp.forEach(x=>{if(!x||!x.id||!(x.amount>0)||!/^\d{4}-\d{2}-\d{2}$/.test(x.date||''))return;
+      const r={...x,cur:CUR.includes(x.cur)?x.cur:'PLN',rate:x.rate||1,pln:x.pln||x.amount*(x.rate||1),t:x.t||Date.now()};
+      const i=S.exp.findIndex(y=>y.id===x.id);if(i>=0){r.photo=S.exp[i].photo;S.exp[i]=r}else{r.photo=false;S.exp.push(r);n++}});
+    save();render();toast('Wczytano kopię. Nowych wydatków: '+n+'.')}
+  catch(err){toast('Ten plik nie jest kopią z tej aplikacji.')}};
+
+/* ---------- 11. Start aplikacji ---------- */
+render();
+refreshRates().then(()=>{render();fixEstimates()});
+addEventListener('online',fixEstimates);
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
